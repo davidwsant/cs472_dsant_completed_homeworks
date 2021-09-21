@@ -1,4 +1,5 @@
-class Perceptron:
+import random 
+class Perceptron():
 	def __init__(self,max_iterations=500,shuffle=True, step_size = 1, no_improvement_break = 25):
 		self.max_iterations = max_iterations
 		self.no_improvement_break = no_improvement_break
