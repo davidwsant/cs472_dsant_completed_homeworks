@@ -1,16 +1,25 @@
+import copy
+import numpy as np
+import math
+import random
+from sklearn.model_selection import train_test_split
+
 class MLP():
-	def __init__(self,max_iterations=500,shuffle=True, step_size = 1, no_improvement_break = None, hidden_nodes = 5, porportion_train=0.8):
+	def __init__(self,max_iterations=500,shuffle=True, step_size = 1, no_improvement_break = None, hidden_nodes = 5, porportion_train=0.8, initial_weights_zero = False):
 		import copy
 		import numpy as np
 		import math
+		import random
 		from sklearn.model_selection import train_test_split
 		self.max_iterations = max_iterations
 		self.no_improvement_break = no_improvement_break
 		self.shuffle=shuffle
 		self.step_size = step_size
 		self.porportion_train = porportion_train
+		self.initial_weights_zero = initial_weights_zero
 		self.epoch_number = 0
 		self.rmse = []
+		self.training_rmse = []
 		self.best_rmse = None
 		self.best_epoch = 0
 		self.best_weights = None
@@ -62,6 +71,18 @@ class MLP():
 			self.best_rmse = individual_rmse
 			self.best_epoch = self.epoch_number
 			self.best_weights = self.weight_matrices
+		# Save the training RMSE values as well. These will not be used as stopping criteria
+		training_sse = 0
+		for entry in self.train_data:
+			first_hidden_net_values = np.matmul(entry[0], self.weight_matrices[0])
+			first_hidden_z_values = get_z(first_hidden_net_values) +[1] # add the bias weight
+			output_net_values = np.matmul(first_hidden_z_values, self.weight_matrices[1])
+			output_z_values = get_z(output_net_values)
+			for output_z_value, output_correct_value in zip(output_z_values, entry[1]):
+				training_sse += (output_correct_value - output_z_value)**2
+		training_mse = training_sse/(len(self.train_data)*len(self.train_data[0][1]))
+		training_individual_rmse = math.sqrt(training_mse)
+		self.training_rmse.append(training_individual_rmse)
 
 
 	def fit(self, input_values, input_labels):
@@ -101,6 +122,12 @@ class MLP():
 		self.weight_matrices = []
 		self.weight_matrices.append(np.random.rand(len(self.train_data[0][0]), self.hidden_nodes))
 		self.weight_matrices.append(np.random.rand(self.hidden_nodes + 1, len(self.train_data[0][1])))
+		if self.initial_weights_zero:
+			# Just for class, start everything with zero instead of the random values
+			for i in range(len(self.weight_matrices)):
+				for j in range(len(self.weight_matrices[i])):
+					for k in range(len(self.weight_matrices[i][j])):
+						self.weight_matrices[i][j][k] = 0
 		while self.epoch_number < self.max_iterations:
 			if self.no_improvement_break and (self.epoch_number - self.no_improvement_break) >= self.best_epoch:
 				# If it has a specified no improvement break number
